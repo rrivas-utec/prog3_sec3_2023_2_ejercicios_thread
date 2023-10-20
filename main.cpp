@@ -44,11 +44,18 @@ void ejercicio_2() {
 
 class Cliente {
     double saldo = 0;
+    mutex mtx;
 public:
     Cliente() = default;
     Cliente(double saldo): saldo(saldo) {}
-    void deposito(double importe) { saldo += importe; }
-    void retiro(double importe) { saldo -= importe; }
+    void deposito(double importe) {
+        lock_guard lg(mtx);
+        saldo += importe;
+    }
+    void retiro(double importe) {
+        unique_lock ul(mtx);
+        saldo -= importe;
+    }
     friend ostream& operator << (ostream& out, const Cliente& c) {
         out << c.saldo;
         return out;
@@ -58,20 +65,28 @@ public:
 void ejercicio_3() {
     int nd = 100;
     int d = 1;
-    int nr = 100;
+    int nr = 50;
     int r = 1;
     Cliente c;
     // hilos de deposito
+    vector<jthread> vtd(nd); // Crear hilos de deposito
+    // asignar el metodo de deposito al hilo
+    for (auto& t: vtd) t = jthread(&Cliente::deposito, &c, d);
 
     // hilos de retiro
+    vector<jthread> vtr(nr);
+    for (auto& t: vtr) t = jthread(&Cliente::retiro, &c, r);
 
     // union de depositos
+    for (auto& t: vtd) t.join();
     // union de retiros
+    for (auto& t: vtr) t.join();
 
     cout << c;
 }
 
 int main() {
-    ejercicio_2();
+//    ejercicio_2();
+    ejercicio_3();
     return 0;
 }
